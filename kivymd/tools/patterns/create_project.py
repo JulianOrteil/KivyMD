@@ -271,7 +271,7 @@ multitasking.set_max_threads(10)
 class {name_screen}Model(BaseScreenModel):
     """
     Implements the logic of the
-    :class:`~views.{module_name}.{module_name}.{name_screen}View` class.
+    :class:`~views.{name_screen_lower}.{module_name}.{name_screen}View` class.
     """
 
     def __init__(self, database):
@@ -286,7 +286,7 @@ class {name_screen}Model(BaseScreenModel):
     def data(self, value):
         self._data = value
         # We notify the view -
-        # :class:`~views.{module_name}.{module_name}.{name_screen}View` about the
+        # :class:`~views.{name_screen_lower}.{module_name}.{name_screen}View` about the
         # changes that have occurred in the data model.
         self.notify_observers({notify_name_screen})
 
@@ -303,7 +303,7 @@ temp_without_database_model = '''from models.base_model import BaseScreenModel
 class {name_screen}Model(BaseScreenModel):
     """
     Implements the logic of the
-    :class:`~views.{module_name}.{module_name}.{name_screen}View` class.
+    :class:`~views.{name_screen_lower}.{module_name}.{name_screen}View` class.
     """'''
 
 temp_screens_imports = """# The screens dictionary contains the objects of the models and controllers
@@ -314,7 +314,7 @@ temp_screens_imports = """# The screens dictionary contains the objects of the m
 
 temp_code_responsive_view = '''from kivymd.uix.responsivelayout import MDResponsiveLayout
 
-from views.{module_name}.components import (
+from views.{name_screen_lower}.components import (
     MobileScreenView,
     TabletScreenView,
     DesktopScreenView,
@@ -373,7 +373,7 @@ class {name_screen}Controller:
     """
 
     def __init__(self, model):
-        self.model = model  # models.{module_name}.{name_screen}Model
+        self.model = model  # models.{name_screen_lower}.{name_screen}Model
         self.view = {name_view}(controller=self, model=self.model)
 
     def get_view(self) -> {get_view}:
@@ -720,7 +720,7 @@ def main():
             # Create views
             create_view(name, module_name, use_responsive, path_to_project)
 
-        # Create module `NameProject/views/NameScreen/components/common/__init__.py`.
+        # Create module `NameProject/views/namescreen/components/common/__init__.py`.
         create_common_responsive_module(use_responsive, path_to_project)
         # Create module `NameProject/views/screens.py`.
         create_module_screens()
@@ -883,12 +883,15 @@ def create_model(
     if name_database != "no":
         code_model = temp_database_model.format(
             name_screen=name_screen,
+            name_screen_lower=name_screen.lower(),
             module_name=module_name,
             notify_name_screen=f'"{" ".join(module_name.split("_"))}"',
         )
     else:
         code_model = temp_without_database_model.format(
-            module_name=module_name, name_screen=name_screen
+            module_name=module_name,
+            name_screen=name_screen,
+            name_screen_lower=name_screen.lower(),
         )
 
     model_module = os.path.join(path_to_project, "models", module_name)
@@ -918,24 +921,25 @@ def create_controller(
     name_screen: str, module_name: str, use_hotreload: str, path_to_project: str
 ) -> None:
     name_view = (
-        f"views.{module_name}.{module_name}.{name_screen}View"
+        f"views.{name_screen.lower()}.{module_name}.{name_screen}View"
         if use_hotreload == "yes"
         else f"{name_screen}View"
     )
     code_controller = temp_code_controller.format(
         name_screen=name_screen,
+        name_screen_lower=name_screen.lower(),
         module_name=module_name,
         import_module=""
         f"import importlib\n\n"
-        f"import views.{module_name}.{module_name}\n\n"
+        f"import views.{name_screen.lower()}.{module_name}\n\n"
         f"# We have to manually reload the view module in order to apply the\n"
         f"# changes made to the code on a subsequent hot reload.\n"
         f"# If you no longer need a hot reload, you can delete this instruction.\n"
-        f"importlib.reload(views.{module_name}.{module_name})\n\n"
+        f"importlib.reload(views.{name_screen.lower()}.{module_name})\n\n"
         if use_hotreload == "yes"
-        else f"\nfrom views.{module_name}.{module_name} import {name_screen}View",
+        else f"\nfrom views.{name_screen.lower()}.{module_name} import {name_screen}View",
         name_view=name_view,
-        get_view=f"views.{module_name}.{module_name}"
+        get_view=f"views.{name_screen.lower()}.{module_name}"
         if use_hotreload == "yes"
         else f"{name_screen}View",
     )
@@ -964,10 +968,10 @@ def create_makefile_data(name_screen: str, module_name: str) -> None:
     global temp_makefile_files
 
     temp_makefile_files += (
-        f"                views/{name_screen}/{module_name}.py \\\n"
+        f"                views/{name_screen.lower()}/{module_name}.py \\\n"
     )
     temp_makefile_files += (
-        f"                views/{name_screen}/{module_name}.kv \\\n"
+        f"                views/{name_screen.lower()}/{module_name}.kv \\\n"
     )
 
 
@@ -1007,7 +1011,11 @@ def create_common_responsive_module(
 ) -> None:
     for name_screen in use_responsive:
         path_to_init_common = os.path.join(
-            path_to_project, "views", name_screen, "components", "common"
+            path_to_project,
+            "views",
+            name_screen.lower(),
+            "components",
+            "common",
         )
         os.makedirs(path_to_init_common)
         with open(
@@ -1026,7 +1034,7 @@ def create_view(
     use_responsive: list,
     path_to_project: str,
 ) -> None:
-    path_to_view = os.path.join(path_to_project, "views", module_name)
+    path_to_view = os.path.join(path_to_project, "views", name_screen.lower())
     path_to_components = os.path.join(path_to_view, "components")
     view_module = os.path.join(path_to_view, module_name)
     os.makedirs(path_to_view)
@@ -1040,7 +1048,9 @@ def create_view(
         view_file.write(
             temp_code_view.format(name_screen=name_screen)
             if name_screen not in use_responsive
-            else temp_code_responsive_view.format(name_screen=name_screen)
+            else temp_code_responsive_view.format(
+                name_screen_lower=name_screen.lower()
+            )
         )
 
     if name_screen in use_responsive:
@@ -1052,12 +1062,16 @@ def create_view(
             path_to_init_components = os.path.join(
                 path_to_project,
                 "views",
-                module_name,
+                name_screen.lower(),
                 "components",
                 "__init__.py",
             )
             path_to_platforms = os.path.join(
-                path_to_project, "views", module_name, "components", "platforms"
+                path_to_project,
+                "views",
+                name_screen.lower(),
+                "components",
+                "platforms",
             )
             path_to_platform = os.path.join(path_to_platforms, name_platform)
             path_to_platform_components = os.path.join(
